@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>David Viney — Sites Navigator</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230a0e0a'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle' fill='%2333ff66' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg: #0a0e0a;
+    --bg-alt: #0f140f;
+    --fg: #33ff66;
+    --fg-dim: #1f8f3f;
+    --fg-bright: #b6ffcf;
+    --amber: #ffb000;
+    --border: #1b3a22;
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  body::before{
+    content:'';
+    position: fixed; inset:0;
+    background: repeating-linear-gradient(
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 1px,
+      rgba(51,255,102,0.028) 2px,
+      rgba(51,255,102,0.028) 3px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  body::after{
+    content:'';
+    position: fixed; inset:0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 60%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+    z-index: 998;
+  }
+
+  a{ color: inherit; text-decoration: none; }
+
+  .wrap{
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  header{
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+
+  .prompt-line{
+    color: var(--fg-dim);
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  .prompt-line .user{ color: var(--fg); }
+  .prompt-line .path{ color: var(--amber); }
+
+  h1{
+    font-size: 26px;
+    margin: 0 0 8px;
+    color: var(--fg-bright);
+    text-shadow: 0 0 8px rgba(51,255,102,0.35);
+    letter-spacing: 0.5px;
+  }
+  h1::after{
+    content: '▋';
+    display: inline-block;
+    margin-left: 6px;
+    animation: blink 1.1s steps(1) infinite;
+    color: var(--fg);
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .tagline{
+    color: var(--fg-dim);
+    font-size: 13.5px;
+    max-width: 620px;
+  }
+
+  .search-box{
+    margin-top: 24px;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-alt);
+    padding: 10px 14px;
+    border-radius: 3px;
+  }
+  .search-box span{ color: var(--fg-dim); }
+  .search-box input{
+    flex:1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--fg-bright);
+    font-family: var(--mono);
+    font-size: 14px;
+    caret-color: var(--fg);
+  }
+  .search-box input::placeholder{ color: #235c30; }
+
+  section.nav-section{
+    margin-bottom: 34px;
+  }
+
+  section.nav-section > h2{
+    font-size: 15px;
+    color: var(--fg-bright);
+    border-left: 3px solid var(--fg-dim);
+    padding-left: 10px;
+    margin: 0 0 14px;
+    text-transform: none;
+  }
+  section.nav-section > h2 .hash{ color: var(--fg-dim); margin-right: 6px; }
+  section.nav-section > h2 .feed-link{
+    font-size: 11px;
+    color: var(--fg-dim);
+    margin-left: 10px;
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+  section.nav-section > h2 .feed-link:hover{ color: var(--fg-bright); border-color: var(--fg-dim); }
+
+  ul{ list-style:none; margin:0; padding:0; }
+  .tree{ padding-left: 4px; }
+  .tree ul{ padding-left: 20px; border-left: 1px dashed var(--border); margin-top: 4px; margin-bottom: 4px; }
+
+  .tree li{ margin: 3px 0; position: relative; }
+
+  .node{
+    display:flex;
+    align-items:baseline;
+    gap: 6px;
+    padding: 3px 6px;
+    border-radius: 2px;
+  }
+
+  a.node:hover{
+    background: rgba(51,255,102,0.07);
+    color: var(--fg-bright);
+  }
+
+  .bullet{ color: var(--fg-dim); flex-shrink:0; }
+
+  .label-only{
+    color: var(--fg-dim);
+    padding: 3px 6px;
+    display:block;
+    font-size: 13.5px;
+    letter-spacing: 0.3px;
+  }
+
+  a.pending{
+    color: var(--amber);
+    opacity: 0.75;
+    cursor: default;
+  }
+  a.pending:hover{ background: rgba(255,176,0,0.08); }
+  .tag{
+    font-size: 10.5px;
+    color: var(--fg-dim);
+    border: 1px dashed var(--border);
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-left: 4px;
+  }
+
+  footer{
+    margin-top: 50px;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+    color: var(--fg-dim);
+    font-size: 12px;
+  }
+
+  .no-results{
+    display:none;
+    color: var(--fg-dim);
+    font-size: 13px;
+    padding: 10px 0;
+  }
+
+  ::selection{ background: var(--fg-dim); color: var(--bg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="prompt-line"><span class="user">guest@viney</span>:<span class="path">~</span>$ whoami</div>
+    <h1>David Viney — Sites Navigator</h1>
+    <div class="tagline">A personal homepage / quick-nav to the sites, profiles and resources David curates and uses most often.</div>
+
+    <div class="search-box">
+      <span>$ grep -i</span>
+      <input type="text" id="filter" placeholder="type to filter…" autocomplete="off" spellcheck="false">
+    </div>
+  </header>
+
+  <div class="no-results" id="noResults">-- no matches --</div>
+
+  <section class="nav-section" data-section>
+    <h2><span class="hash">#</span>Writer</h2>
+    <ul class="tree">
+      <li>
+        <span class="node label-only"><span class="bullet">├─</span>Publishing</span>
+        <ul>
+          <li>
+            <a class="node" href="https://www.david-viney.me/" target="_blank" rel="noopener"><span class="bullet">├─</span>David Viney</a>
+            <ul>
+              <li><a class="node" href="https://www.david-viney.me/musings-blog" target="_blank" rel="noopener"><span class="bullet">├─</span>Musings Blog</a></li>
+              <li><a class="node" href="https://www.amazon.co.uk/Get-Top-Google-Techniques-There/dp/1857885023" target="_blank" rel="noopener"><span class="bullet">├─</span>Get to the Top on Google</a></li>
+              <li><a class="node" href="https://www.amazon.co.uk/Intranet-Portal-Guide-Corporate-Successfully/dp/0955077400/" target="_blank" rel="noopener"><span class="bullet">├─</span>The Intranet Portal Guide</a></li>
+              <li><a class="node" href="https://www.david-viney.me/post/the-j-curve-of-change" target="_blank" rel="noopener"><span class="bullet">└─</span>The J-Curve of Change</a></li>
+            </ul>
+          </li>
+          <li><a class="node" href="https://www.david-viney.me/mercury-web-publishing" target="_blank" rel="noopener"><span class="bullet">└─</span>Mercury Web Publishing</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <a class="node" href="https://www.haute-vue.com/" target="_blank" rel="noopener"><span class="bullet">├─</span>Haute Vue</a>
+        <ul>
+          <li><a class="node" href="https://www.haute-vue.com/pays-de-fayence" target="_blank" rel="noopener"><span class="bullet">├─</span>Pays de Fayence</a></li>
+          <li><a class="node" href="https://www.haute-vue.com/montauroux" target="_blank" rel="noopener"><span class="bullet">├─</span>Montauroux</a></li>
+          <li><a class="node" href="https://www.haute-vue.com/villa-montauroux" target="_blank" rel="noopener"><span class="bullet">├─</span>Luxury Holiday Rental Villa</a></li>
+          <li><a class="node" href="https://www.haute-vue.com/little-pieces-of-light" target="_blank" rel="noopener"><span class="bullet">└─</span>Little Pieces of Light Blog</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <span class="node label-only"><span class="bullet">├─</span>Journalism</span>
+        <ul>
+          <li><a class="node" href="https://sites.google.com/view/part-time-cio/home" target="_blank" rel="noopener"><span class="bullet">├─</span>Google Sites</a></li>
+          <li><a class="node" href="https://virtual-cio.mystrikingly.com/" target="_blank" rel="noopener"><span class="bullet">├─</span>Strikingly</a></li>
+          <li><a class="node" href="https://www.connectively.us/p/david-viney" target="_blank" rel="noopener"><span class="bullet">├─</span>Connectively</a></li>
+          <li><a class="node" href="https://medium.com/@david-viney/about" target="_blank" rel="noopener"><span class="bullet">├─</span>Medium</a></li>
+          <li><a class="node" href="https://muckrack.com/david-viney-2" target="_blank" rel="noopener"><span class="bullet">└─</span>MuckRack</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <span class="node label-only"><span class="bullet">└─</span>Tools</span>
+        <ul>
+          <li><a class="node" href="https://es.slideshare.net/DavidViney3" target="_blank" rel="noopener"><span class="bullet">├─</span>SlideShare</a></li>
+          <li><a class="node" href="https://www.scribd.com/document/1018772827/David-Viney-Fractional-CIO-AI-Transformation-Leadership-for-Ambitious-Organisations" target="_blank" rel="noopener"><span class="bullet">├─</span>Scribd</a></li>
+          <li><a class="node" href="https://campsite.bio/virtualcio" target="_blank" rel="noopener"><span class="bullet">└─</span>Campfire Bio</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <section class="nav-section" data-section>
+    <h2><span class="hash">#</span>Practitioner</h2>
+    <ul class="tree">
+      <li>
+        <a class="node" href="https://alchemy.consulting/" target="_blank" rel="noopener"><span class="bullet">├─</span>Alchemy</a>
+        <ul>
+          <li>
+            <span class="node label-only"><span class="bullet">├─</span>Business Services</span>
+            <ul>
+              <li><a class="node" href="https://alchemy.consulting/fractional-cio-london.html" target="_blank" rel="noopener"><span class="bullet">├─</span>Fractional &amp; Interim Technology Leadership &amp; Transition</a></li>
+              <li><a class="node" href="https://alchemy.consulting/technology-board-advisor.html" target="_blank" rel="noopener"><span class="bullet">├─</span>Board Advisory &amp; Technology Steering</a></li>
+              <li><a class="node" href="https://alchemy.consulting/technology-leadership-coaching.html" target="_blank" rel="noopener"><span class="bullet">├─</span>Mentoring, Coaching, Capability &amp; Operating Model</a></li>
+              <li><a class="node" href="https://alchemy.consulting/enterprise-erp-transformation.html" target="_blank" rel="noopener"><span class="bullet">├─</span>Transformation Programme Delivery — ERP &amp; Platform</a></li>
+              <li><a class="node" href="https://alchemy.consulting/ai-governance-strategy-consultant.html" target="_blank" rel="noopener"><span class="bullet">├─</span>Responsible AI — Strategy, Governance &amp; Delivery</a></li>
+              <li><a class="node" href="https://alchemy.consulting/cyber-security-consultant-london.html" target="_blank" rel="noopener"><span class="bullet">└─</span>Cyber Security — Risk &amp; Controls</a></li>
+            </ul>
+          </li>
+          <li>
+            <span class="node label-only"><span class="bullet">└─</span>Playbooks</span>
+            <ul>
+              <li><a class="node" href="https://alchemy.consulting/master-ai.html" target="_blank" rel="noopener"><span class="bullet">├─</span>MASTER-AI Framework</a></li>
+              <li><a class="node" href="https://alchemy.consulting/value-flow-sankey.html" target="_blank" rel="noopener"><span class="bullet">├─</span>Value Flow Sankey</a></li>
+              <li><a class="node" href="https://alchemy.consulting/ai-j-curve.html" target="_blank" rel="noopener"><span class="bullet">├─</span>AI J-Curve</a></li>
+              <li><a class="node" href="https://alchemy.consulting/ai-readiness-scorecard.html" target="_blank" rel="noopener"><span class="bullet">└─</span>AI Readiness Assessment</a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+
+      <li>
+        <span class="node label-only"><span class="bullet">├─</span>Business Profiles</span>
+        <ul>
+          <li><a class="node" href="https://fractional-caio-london.neocities.org/" target="_blank" rel="noopener"><span class="bullet">├─</span>Neocities</a></li>
+          <li><a class="node" href="https://www.f6s.com/member/david-viney1" target="_blank" rel="noopener"><span class="bullet">├─</span>F6S</a></li>
+          <li><a class="node" href="https://clarity.fm/davidviney" target="_blank" rel="noopener"><span class="bullet">├─</span>Clarity</a></li>
+          <li><a class="node" href="https://app.yunojuno.com/p/david-viney/" target="_blank" rel="noopener"><span class="bullet">├─</span>YunoJuno</a></li>
+          <li><a class="node" href="https://www.goodfirms.co/company/alchemy-consulting" target="_blank" rel="noopener"><span class="bullet">├─</span>GoodFirms</a></li>
+          <li><a class="node" href="https://www.indiehackers.com/dviney" target="_blank" rel="noopener"><span class="bullet">├─</span>IndieHackers</a></li>
+          <li><a class="node" href="https://www.digitalreference.co/resume/david-viney-xaejzxy5" target="_blank" rel="noopener"><span class="bullet">├─</span>Digital Reference</a></li>
+          <li><a class="node" href="https://www.designrush.com/agency/profile/alchemy-consulting" target="_blank" rel="noopener"><span class="bullet">├─</span>DesignRush</a></li>
+          <li><a class="node" href="https://www.gofractional.com/member/david-viney" target="_blank" rel="noopener"><span class="bullet">├─</span>Go Fractional</a></li>
+          <li><a class="node" href="https://wellfound.com/company/alchemy-consulting-services-1" target="_blank" rel="noopener"><span class="bullet">├─</span>Wellfound</a></li>
+          <li><a class="node" href="https://contra.com/david_viney_fractional_CIO" target="_blank" rel="noopener"><span class="bullet">├─</span>Contra</a></li>
+          <li><a class="node" href="https://techbehemoths.com/company/alchemy-consulting" target="_blank" rel="noopener"><span class="bullet">├─</span>Tech Behemoths</a></li>
+          <li><a class="node" href="https://x.com/alchemycio" target="_blank" rel="noopener"><span class="bullet">├─</span>Twitter/X.com</a></li>
+          <li><a class="node" href="https://about.me/dviney" target="_blank" rel="noopener"><span class="bullet">└─</span>About Me</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <span class="node label-only"><span class="bullet">└─</span>Research</span>
+        <ul>
+          <li><a class="node" href="https://orcid.org/0009-0008-6158-8086" target="_blank" rel="noopener"><span class="bullet">├─</span>ORCID</a></li>
+          <li><a class="node" href="https://scholar.google.co.uk/citations?hl=en&user=_tyvloIAAAAJ" target="_blank" rel="noopener"><span class="bullet">├─</span>Google Scholar</a></li>
+          <li><a class="node" href="https://www.webofscience.com/wos/author/record/PTF-6844-2026" target="_blank" rel="noopener"><span class="bullet">├─</span>Web of Science</a></li>
+          <li><a class="node" href="https://loop.frontiersin.org/people/3457196/bio" target="_blank" rel="noopener"><span class="bullet">├─</span>Loop</a></li>
+          <li><a class="node" href="https://papers.ssrn.com/sol3/cf_dev/AbsByAuth.cfm?per_id=11033048" target="_blank" rel="noopener"><span class="bullet">├─</span>SSRN</a></li>
+          <li><a class="node" href="https://www.researchgate.net/profile/David-Viney-3" target="_blank" rel="noopener"><span class="bullet">├─</span>ResearchGate</a></li>
+          <li><a class="node" href="https://publicationslist.org/david-viney" target="_blank" rel="noopener"><span class="bullet">└─</span>Publications List</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <section class="nav-section" data-section>
+    <h2><span class="hash">#</span>Advocate</h2>
+    <ul class="tree">
+      <li>
+        <span class="node label-only"><span class="bullet">├─</span>Affiliations</span>
+        <ul>
+          <li><a class="node" href="https://www.article19.org/our-trustees/" target="_blank" rel="noopener"><span class="bullet">├─</span>Article 19 — Trustee</a></li>
+          <li><a class="node" href="https://inspiringleadership.foundation/about-us/our-people/" target="_blank" rel="noopener"><span class="bullet">├─</span>Inspiring Leadership Foundation — Trustee</a></li>
+          <li><a class="node" href="https://aigas.org.uk/advisory-board/" target="_blank" rel="noopener"><span class="bullet">└─</span>AI Governance Assurance Standard (AIGAS) — Advisory Board</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <span class="node label-only"><span class="bullet">└─</span>Citations</span>
+        <ul>
+          <li><a class="node" href="https://institute.global/insights/economic-prosperity/rebooting-the-uks-tech-diffusion-ecosystem-to-drive-growth" target="_blank" rel="noopener"><span class="bullet">├─</span>Rebooting the UK's Tech-Diffusion Ecosystem to Drive Growth — Tony Blair Institute</a></li>
+          <li><a class="node" href="https://penderfund.com/wp-content/uploads/2026/04/The-Intelligence-Economy-PenderFund.pdf" target="_blank" rel="noopener"><span class="bullet">└─</span>The Intelligence Economy — PenderFund Capital Management</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <section class="nav-section" data-section>
+    <h2><span class="hash">#</span>Catalyst</h2>
+    <ul class="tree">
+      <li>
+        <span class="node label-only"><span class="bullet">├─</span>Speaking</span>
+        <ul>
+          <li>
+            <a class="node" href="https://sessionize.com/david-viney/" target="_blank" rel="noopener"><span class="bullet">├─</span>Sessionize</a>
+            <ul>
+              <li><a class="node" href="https://sessionize.com/s/david-viney/i-am-become-slug-the-destroyer-of-words/179229" target="_blank" rel="noopener"><span class="bullet">├─</span>I Am Become Slug, the Destroyer of Words</a></li>
+              <li><a class="node" href="https://sessionize.com/s/david-viney/navigating-the-ai-j-curve/179230/" target="_blank" rel="noopener"><span class="bullet">├─</span>Navigating the AI J-Curve</a></li>
+              <li><a class="node" href="https://sessionize.com/s/david-viney/the-seatbelt-didnt-kill-the-car/179231" target="_blank" rel="noopener"><span class="bullet">├─</span>The Seatbelt Didn't Kill the Car</a></li>
+              <li><a class="node" href="https://sessionize.com/s/david-viney/dont-be-a-lemming-leader/179232" target="_blank" rel="noopener"><span class="bullet">└─</span>Don't Be a Lemming Leader</a></li>
+            </ul>
+          </li>
+          <li><a class="node" href="https://talks.co/david-viney-fractional-cio-ai-governance/" target="_blank" rel="noopener"><span class="bullet">└─</span>Talks.co</a></li>
+        </ul>
+      </li>
+
+      <li>
+        <span class="node label-only"><span class="bullet">└─</span>Press &amp; Mentions <a class="feed-link" href="https://alchemycio-uk.raindrop.page/mentions-72513098" target="_blank" rel="noopener">view full feed →</a> <span id="mentionsLiveBadge" class="tag" style="display:none;color:var(--fg-bright);border-color:var(--fg-dim);">● live</span></span>
+        <ul id="mentionsList">
+          <li><a class="node" href="https://techround.co.uk/artificial-intelligence/the-un-wants-global-ai-guardrails-but-what-would-that-mean-for-startups/" target="_blank" rel="noopener"><span class="bullet">├─</span>The UN Wants Global AI Guardrails, But What Would That Mean For Startups? — TechRound</a></li>
+          <li><a class="node" href="https://www.qianjia.com/html/2026-06/24_425831.html" target="_blank" rel="noopener"><span class="bullet">├─</span>边缘计算能让人工智能更具可持续性吗？— 千家网</a></li>
+          <li><a class="node" href="https://www.computerweekly.com/br/reportagen/A-computacao-de-borda-pode-tornar-a-IA-mais-sustentavel" target="_blank" rel="noopener"><span class="bullet">├─</span>A computação de borda pode tornar a IA mais sustentável? — ComputerWeekly</a></li>
+          <li><a class="node" href="https://sumatosoft.com/blog/ai-adoption-success-cases-in-enterprises" target="_blank" rel="noopener"><span class="bullet">├─</span>AI Adoption in Enterprises: 16 Success Cases and the KPIs They Improved in 2026</a></li>
+          <li><a class="node" href="https://bosstoday.com/agentic-ai-moves-from-assistant-to-operator-redefining-how-teams-work/" target="_blank" rel="noopener"><span class="bullet">├─</span>Agentic AI Moves From Assistant to Operator, Redefining How Teams Work — Boss Today</a></li>
+          <li><a class="node" href="https://www.kavout.com/market-lens/is-the-saaspocalypse-truly-over" target="_blank" rel="noopener"><span class="bullet">├─</span>Is the SaaSpocalypse Truly Over</a></li>
+          <li><a class="node" href="https://en.money.it/AI-Bubble-Experts-Reveal-Which-Companies-Are-at-Risk-to-Money-it" target="_blank" rel="noopener"><span class="bullet">├─</span>AI Bubble: Experts Reveal Which Companies Are at Risk — Money.it</a></li>
+          <li><a class="node" href="https://www.bizjournals.com/bizjournals/news/2026/05/30/ai-use-dangers-errors-accountability.html" target="_blank" rel="noopener"><span class="bullet">├─</span>A hidden AI 'landmine' can upend your business — Bizjournals</a></li>
+          <li><a class="node" href="https://www.reworked.co/employee-experience/your-hiring-software-may-break-eu-law/" target="_blank" rel="noopener"><span class="bullet">├─</span>Your Hiring Software May Already Violate EU Law — Reworked</a></li>
+          <li><a class="node" href="https://gritdaily.com/leadership-age-of-automation-what-skills-will-matter/" target="_blank" rel="noopener"><span class="bullet">├─</span>Leadership in the Age of Automation: What Skills Will Matter Most? — Grit Daily</a></li>
+          <li><a class="node" href="https://ciogrid.com/qa/speed-up-ai-safely-governance-that-enables-enterprise-it/" target="_blank" rel="noopener"><span class="bullet">├─</span>Speed Up AI Safely: Governance That Enables Enterprise IT — CIO Grid</a></li>
+          <li><a class="node" href="https://www.techtarget.com/sustainability/feature/Can-edge-computing-make-AI-more-sustainable" target="_blank" rel="noopener"><span class="bullet">├─</span>Can edge computing make AI more sustainable? — TechTarget</a></li>
+          <li><a class="node" href="https://www.collegerecruiter.com/blog/2026/05/26/does-the-eu-ai-act-make-job-seeker-scoring-ranking-match-by-job-boards-and-ats-illegal" target="_blank" rel="noopener"><span class="bullet">└─</span>Does the EU AI Act make job seeker scoring/ranking/match by job boards and ATS illegal? — College Recruiter</a></li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <footer>
+    $ echo "amber tag = link still needed — edit index.html and drop in the url"<br>
+    served from GitHub Pages
+  </footer>
+
+</div>
+
+<script>
+  // disable pending (amber) links until real URLs are added
+  document.querySelectorAll('a.pending').forEach(function(a){
+    a.addEventListener('click', function(e){ e.preventDefault(); });
+  });
+
+  // ---- Press & Mentions: live sync from the Raindrop RSS feed ----
+  // 1. In Raindrop: open the "Mentions" collection → Share → copy the RSS feed link
+  //    (it looks like https://rss.raindrop.io/<id>/<token>)
+  // 2. Paste it below between the quotes.
+  // 3. Leave it blank ('') to keep the static list below exactly as it is — the
+  //    page works fine either way, this just makes it self-updating.
+  //
+  // Uses the free rss2json.com proxy because browsers can't fetch raw RSS/XML
+  // cross-origin. Free tier is rate-limited; if a fetch ever fails or the URL
+  // is blank, nothing breaks — the hard-coded list above just stays put.
+  var RAINDROP_RSS_URL = 'https://alchemycio-uk.raindrop.page/mentions-72513098/feed';
+
+  (function syncMentions(){
+    if (!RAINDROP_RSS_URL) return;
+
+    var api = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RAINDROP_RSS_URL);
+
+    fetch(api)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.status !== 'ok' || !Array.isArray(data.items) || !data.items.length) {
+          throw new Error('Unexpected feed response');
+        }
+
+        var list = document.getElementById('mentionsList');
+        var frag = document.createDocumentFragment();
+
+        data.items.forEach(function(item, i){
+          var li = document.createElement('li');
+          var a = document.createElement('a');
+          a.className = 'node';
+          a.href = item.link;
+          a.target = '_blank';
+          a.rel = 'noopener';
+
+          var bullet = document.createElement('span');
+          bullet.className = 'bullet';
+          bullet.textContent = (i === data.items.length - 1) ? '└─' : '├─';
+
+          a.appendChild(bullet);
+          a.appendChild(document.createTextNode(item.title));
+          li.appendChild(a);
+          frag.appendChild(li);
+        });
+
+        list.innerHTML = '';
+        list.appendChild(frag);
+
+        var badge = document.getElementById('mentionsLiveBadge');
+        if (badge) badge.style.display = '';
+      })
+      .catch(function(err){
+        console.warn('Mentions live sync skipped, showing the cached list instead:', err);
+      });
+  })();
+
+  // live filter — matches on a top-level branch's full text (incl. children)
+  var input = document.getElementById('filter');
+  var noResults = document.getElementById('noResults');
+
+  input.addEventListener('input', function(){
+    var q = input.value.trim().toLowerCase();
+    var anyVisibleTotal = false;
+
+    document.querySelectorAll('.nav-section').forEach(function(section){
+      var topLis = section.querySelectorAll(':scope > ul.tree > li');
+      var sectionHasVisible = false;
+
+      topLis.forEach(function(li){
+        var text = li.textContent.toLowerCase();
+        var show = q === '' || text.indexOf(q) !== -1;
+        li.style.display = show ? '' : 'none';
+        if (show) sectionHasVisible = true;
+      });
+
+      section.style.display = sectionHasVisible ? '' : 'none';
+      if (sectionHasVisible) anyVisibleTotal = true;
+    });
+
+    noResults.style.display = anyVisibleTotal ? 'none' : 'block';
+  });
+</script>
+</body>
+</html>
